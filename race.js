@@ -9,8 +9,8 @@
 (() => {
   const canvas = document.getElementById('race-canvas');
   const ctx = canvas.getContext('2d', { alpha: false });
-  const W = canvas.width;   // 960
-  const H = canvas.height;  // 600
+  let W = canvas.width;   // 960 windowed, raised in fullscreen
+  let H = canvas.height;  // 600
 
   /* ---------- Camera / engine ---------- */
   const SEG_LENGTH = 200;
@@ -2673,6 +2673,13 @@
     button.addEventListener('contextmenu', (event) => event.preventDefault());
   }
 
+  /* Holding a labelled button used to raise the browser's own
+     select/copy popup over the controls. Kill selection on the whole pad. */
+  ['selectstart', 'contextmenu', 'dragstart'].forEach((event) => {
+    touchPad.addEventListener(event, (e) => e.preventDefault());
+    canvas.addEventListener(event, (e) => e.preventDefault());
+  });
+
   touchPad.querySelectorAll('[data-hold]').forEach((button) => bindHold(button, button.dataset.hold));
 
   touchPad.querySelectorAll('[data-tap]').forEach((button) => {
@@ -2686,6 +2693,54 @@
     button.addEventListener('pointerup', clear);
     button.addEventListener('pointercancel', clear);
   });
+
+  /* ---------- Fullscreen ---------- */
+
+  const gameScreen = document.getElementById('race-game-screen');
+  const fullscreenBtn = document.getElementById('race-fullscreen');
+
+  const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+
+  /* Render at a higher backing resolution when the canvas is filling a screen,
+     otherwise a 960x600 buffer stretched to 1080p looks soft. Cached gradients
+     are keyed on view height, so they have to go when the size changes. */
+  function setResolution(width, height) {
+    if (canvas.width === width && canvas.height === height) return;
+    canvas.width = width;
+    canvas.height = height;
+    W = width;
+    H = height;
+    Object.keys(cache).forEach((key) => delete cache[key]);
+  }
+
+  function toggleFullscreen() {
+    if (fullscreenElement()) {
+      (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
+      return;
+    }
+    const request = gameScreen.requestFullscreen || gameScreen.webkitRequestFullscreen;
+    if (!request) return;
+    const result = request.call(gameScreen);
+    if (result && result.catch) result.catch(() => { /* denied by the browser */ });
+    // phones race far better sideways; the lock is advisory and often refused
+    if (screen.orientation && screen.orientation.lock) {
+      try { screen.orientation.lock('landscape').catch(() => {}); } catch { /* unsupported */ }
+    }
+  }
+
+  function onFullscreenChange() {
+    const active = Boolean(fullscreenElement());
+    fullscreenBtn.classList.toggle('on', active);
+    fullscreenBtn.textContent = active ? '⤢' : '⛶';
+    setResolution(active ? 1280 : 960, active ? 800 : 600);
+    if (!active && screen.orientation && screen.orientation.unlock) {
+      try { screen.orientation.unlock(); } catch { /* unsupported */ }
+    }
+  }
+
+  fullscreenBtn.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
   function setTouchControls(visible) {
     touchPad.hidden = !visible;
