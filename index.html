@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-hub">
+
+  <!-- ---------- Corner HUD ---------- -->
+  <div class="hud">
+    <div class="badge" id="badge-wins">
+      <span class="badge__icon" id="hud-wins-icon">🏆</span>
+      <span class="badge__value" id="hud-wins">0</span>
+      <span class="badge__label" id="hud-wins-label">total wins</span>
+    </div>
+    <div class="badge" id="badge-best">
+      <span class="badge__icon" id="hud-best-icon">⚡</span>
+      <span class="badge__value" id="hud-best">--:--</span>
+      <span class="badge__label" id="hud-best-label">best</span>
+    </div>
+  </div>
+
+  <!-- ==================== HUB ==================== -->
+  <main class="screen screen--active" id="hub-screen">
+    <h1 class="title">🎮 Game Hub</h1>
+    <p class="subtitle">Six games. Pick one.</p>
+
+    <div class="modes">
+      <button class="mode mode--game" id="pick-ttt">
+        <span class="mode__art art-ttt">
+          <span class="art-ttt__cell x">X</span><span class="art-ttt__cell"></span><span class="art-ttt__cell o">O</span>
+          <span class="art-ttt__cell"></span><span class="art-ttt__cell x">X</span><span class="art-ttt__cell"></span>
+          <span class="art-ttt__cell o">O</span><span class="art-ttt__cell"></span><span class="art-ttt__cell x">X</span>
+        </span>
+        <span class="mode__name">Tic-Tac-Toe</span>
+        <span class="mode__desc">vs AI or 2 players · 3×3 up to 10×10</span>
+      </button>
+
+      <button class="mode mode--game" id="pick-c4">
+        <span class="mode__art art-c4">
+          <span class="art-c4__disc red"></span><span class="art-c4__disc"></span><span class="art-c4__disc yellow"></span>
+          <span class="art-c4__disc yellow"></span><span class="art-c4__disc red"></span><span class="art-c4__disc red"></span>
+        </span>
+        <span class="mode__name">Connect Four</span>
+        <span class="mode__desc">Drop discs · first to line up 4 wins</span>
+      </button>
+
+      <button class="mode mode--game" id="pick-mem">
+        <span class="mode__art art-emoji art-emoji--mem">🧠</span>
+        <span class="mode__name">Memory Match</span>
+        <span class="mode__desc">Flip cards, find every pair, beat the clock</span>
+      </button>
+
+      <button class="mode mode--game" id="pick-2048">
+        <span class="mode__art art-emoji art-emoji--2048">2048</span>
+        <span class="mode__name">2048</span>
+        <span class="mode__desc">Swipe to merge tiles up to 2048</span>
+      </button>
+
+      <button class="mode mode--game" id="pick-snake">
+        <span class="mode__art art-emoji art-emoji--snake">🐍</span>
+        <span class="mode__name">Snake</span>
+        <span class="mode__desc">Eat, grow, don't bite yourself</span>
+      </button>
+
+      <button class="mode mode--game" id="pick-race">
+        <span class="mode__art art-emoji art-emoji--race">🏎️</span>
+        <span class="mode__name">Speed Rush 3D</span>
+        <span class="mode__desc">3D racing · turbo, AI rivals, split screen</span>
+      </button>
+
+      <button class="mode mode--game" id="pick-ms">
+        <span class="mode__art art-emoji art-emoji--ms">💣</span>
+        <span class="mode__name">Minesweeper</span>
+        <span class="mode__desc">Clear the field without hitting a mine</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- ==================== TIC-TAC-TOE ==================== -->
+  <main class="screen" id="ttt-mode-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="hub-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag">⭕ Tic-Tac-Toe</span>
+    </header>
+
+    <h2 class="title title--sm">Game mode</h2>
+    <p class="subtitle">Who are you playing against?</p>
+
+    <div class="modes">
+      <button class="mode" id="ttt-mode-ai">
+        <span class="mode__icon">🤖</span>
+        <span class="mode__name">Play vs AI</span>
+        <span class="mode__desc">You are X, the computer is O</span>
+      </button>
+      <button class="mode" id="ttt-mode-duo">
+        <span class="mode__icon">👥</span>
+        <span class="mode__name">2 Players</span>
+        <span class="mode__desc">Play with a friend on this device</span>
+      </button>
+    </div>
+
+    <fieldset class="difficulty">
+      <legend>AI difficulty</legend>
+      <label><input type="radio" name="ttt-difficulty" value="easy"> Easy</label>
+      <label><input type="radio" name="ttt-difficulty" value="medium" checked> Medium</label>
+      <label><input type="radio" name="ttt-difficulty" value="hard"> Hard</label>
+    </fieldset>
+  </main>
+
+  <main class="screen" id="ttt-size-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="ttt-mode-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag" id="ttt-size-tag">Play vs AI</span>
+    </header>
+
+    <h2 class="title title--sm">Board size</h2>
+    <p class="subtitle">Bigger boards need longer rows to win</p>
+
+    <div class="sizes">
+      <button class="size-card" data-size="3">
+        <span class="size-card__dim">3 × 3</span>
+        <span class="size-card__desc">3 in a row</span>
+        <span class="size-card__tag">Classic</span>
+      </button>
+      <button class="size-card" data-size="4">
+        <span class="size-card__dim">4 × 4</span>
+        <span class="size-card__desc">4 in a row</span>
+        <span class="size-card__tag">Tricky</span>
+      </button>
+      <button class="size-card" data-size="5">
+        <span class="size-card__dim">5 × 5</span>
+        <span class="size-card__desc">5 in a row</span>
+        <span class="size-card__tag">Tough</span>
+      </button>
+      <button class="size-card" data-size="10">
+        <span class="size-card__dim">10 × 10</span>
+        <span class="size-card__desc">5 in a row</span>
+        <span class="size-card__tag">Gomoku</span>
+      </button>
+    </div>
+  </main>
+
+  <main class="screen" id="ttt-game-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="ttt-size-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag" id="ttt-tag">2 Players</span>
+    </header>
+
+    <div class="scoreboard">
+      <div class="score score--x">
+        <span class="score__label" id="ttt-label-x">X</span>
+        <span class="score__value" id="ttt-score-x">0</span>
+      </div>
+      <div class="score score--draw">
+        <span class="score__label">Draws</span>
+        <span class="score__value" id="ttt-score-draw">0</span>
+      </div>
+      <div class="score score--o">
+        <span class="score__label" id="ttt-label-o">O</span>
+        <span class="score__value" id="ttt-score-o">0</span>
+      </div>
+    </div>
+
+    <div class="status-row">
+      <p class="status" id="ttt-status">X's turn</p>
+      <span class="timer" id="ttt-timer">0:00.0</span>
+    </div>
+
+    <div class="board" id="ttt-board"></div>
+
+    <div class="controls">
+      <button class="btn" id="ttt-restart">New Round</button>
+      <button class="btn btn--ghost" id="ttt-reset">Reset Scores</button>
+    </div>
+  </main>
+
+  <!-- ==================== CONNECT FOUR ==================== -->
+  <main class="screen" id="c4-mode-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="hub-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag">🔴 Connect Four</span>
+    </header>
+
+    <h2 class="title title--sm">Game mode</h2>
+    <p class="subtitle">7 columns × 6 rows · line up 4 in any direction</p>
+
+    <div class="modes">
+      <button class="mode" id="c4-mode-ai">
+        <span class="mode__icon">🤖</span>
+        <span class="mode__name">Play vs Computer</span>
+        <span class="mode__desc">You are red, the computer is yellow</span>
+      </button>
+      <button class="mode" id="c4-mode-duo">
+        <span class="mode__icon">👥</span>
+        <span class="mode__name">2 Players</span>
+        <span class="mode__desc">Red and yellow on this device</span>
+      </button>
+    </div>
+
+    <fieldset class="difficulty">
+      <legend>Computer difficulty</legend>
+      <label><input type="radio" name="c4-difficulty" value="easy"> Easy</label>
+      <label><input type="radio" name="c4-difficulty" value="medium" checked> Medium</label>
+      <label><input type="radio" name="c4-difficulty" value="hard"> Hard</label>
+    </fieldset>
+  </main>
+
+  <main class="screen" id="c4-game-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="c4-mode-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag" id="c4-tag">Connect Four</span>
+      <span class="timer" id="c4-timer">0:00.0</span>
+    </header>
+
+    <div class="c4-arena">
+      <div class="c4-panel c4-panel--1" id="c4-panel-1">
+        <span class="c4-panel__disc red"></span>
+        <span class="c4-panel__name" id="c4-name-1">Player 1</span>
+        <span class="c4-panel__wins"><b id="c4-wins-1">0</b> wins</span>
+      </div>
+
+      <div class="c4-boardwrap">
+        <div class="c4-board" id="c4-board"></div>
+      </div>
+
+      <div class="c4-panel c4-panel--2" id="c4-panel-2">
+        <span class="c4-panel__disc yellow"></span>
+        <span class="c4-panel__name" id="c4-name-2">Computer</span>
+        <span class="c4-panel__wins"><b id="c4-wins-2">0</b> wins</span>
+      </div>
+    </div>
+
+    <p class="status status--center" id="c4-status">Red starts</p>
+
+    <div class="controls">
+      <button class="btn" id="c4-restart">New Round</button>
+      <button class="btn btn--ghost" id="c4-reset">Reset Scores</button>
+    </div>
+  </main>
+
+  <!-- ==================== MEMORY MATCH ==================== -->
+  <main class="screen" id="mem-mode-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="hub-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag">🧠 Memory Match</span>
+    </header>
+
+    <h2 class="title title--sm">How many cards?</h2>
+    <p class="subtitle">Find every pair as fast as you can</p>
+
+    <div class="sizes">
+      <button class="size-card" data-cols="4" data-rows="4">
+        <span class="size-card__dim">4 × 4</span>
+        <span class="size-card__desc">8 pairs</span>
+        <span class="size-card__tag">Warm-up</span>
+      </button>
+      <button class="size-card" data-cols="6" data-rows="4">
+        <span class="size-card__dim">6 × 4</span>
+        <span class="size-card__desc">12 pairs</span>
+        <span class="size-card__tag">Standard</span>
+      </button>
+      <button class="size-card" data-cols="6" data-rows="6">
+        <span class="size-card__dim">6 × 6</span>
+        <span class="size-card__desc">18 pairs</span>
+        <span class="size-card__tag">Hard</span>
+      </button>
+      <button class="size-card" data-cols="8" data-rows="6">
+        <span class="size-card__dim">8 × 6</span>
+        <span class="size-card__desc">24 pairs</span>
+        <span class="size-card__tag">Brutal</span>
+      </button>
+    </div>
+  </main>
+
+  <main class="screen" id="mem-game-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="mem-mode-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag" id="mem-tag">Memory Match</span>
+      <span class="timer" id="mem-timer">0:00.0</span>
+    </header>
+
+    <div class="statbar">
+      <div class="statbar__item"><span class="statbar__label">Pairs</span><span class="statbar__value" id="mem-pairs">0/8</span></div>
+      <div class="statbar__item"><span class="statbar__label">Flips</span><span class="statbar__value" id="mem-flips">0</span></div>
+      <div class="statbar__item"><span class="statbar__label">Best</span><span class="statbar__value" id="mem-best">--:--</span></div>
+    </div>
+
+    <p class="status status--center" id="mem-status">Flip two cards</p>
+
+    <div class="mem-board" id="mem-board"></div>
+
+    <div class="controls">
+      <button class="btn" id="mem-restart">New Game</button>
+    </div>
+  </main>
+
+  <!-- ==================== 2048 ==================== -->
+  <main class="screen" id="g2048-game-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="hub-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag">🔢 2048</span>
+    </header>
+
+    <div class="statbar">
+      <div class="statbar__item"><span class="statbar__label">Score</span><span class="statbar__value" id="g2048-score">0</span></div>
+      <div class="statbar__item"><span class="statbar__label">Best</span><span class="statbar__value" id="g2048-best">0</span></div>
+      <div class="statbar__item"><span class="statbar__label">Top tile</span><span class="statbar__value" id="g2048-top">0</span></div>
+    </div>
+
+    <p class="status status--center" id="g2048-status">W ▲ · S ▼ · A ◀ · D ▶ — or arrow keys / swipe</p>
+
+    <div class="g2048-board" id="g2048-board"></div>
+
+    <div class="dpad" id="g2048-pad">
+      <button class="dpad__btn dpad__btn--up" data-dir="up" aria-label="Up (W)">▲<b>W</b></button>
+      <button class="dpad__btn dpad__btn--left" data-dir="left" aria-label="Left (A)">◀<b>A</b></button>
+      <button class="dpad__btn dpad__btn--right" data-dir="right" aria-label="Right (D)">▶<b>D</b></button>
+      <button class="dpad__btn dpad__btn--down" data-dir="down" aria-label="Down (S)">▼<b>S</b></button>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="g2048-restart">New Game</button>
+    </div>
+  </main>
+
+  <!-- ==================== SNAKE ==================== -->
+  <main class="screen" id="snake-mode-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="hub-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag">🐍 Snake</span>
+    </header>
+
+    <h2 class="title title--sm">Speed</h2>
+    <p class="subtitle">Walls are deadly — so is your own tail</p>
+
+    <div class="sizes">
+      <button class="size-card" data-speed="150">
+        <span class="size-card__dim">🐌</span>
+        <span class="size-card__desc">Chill</span>
+        <span class="size-card__tag">1 pt / apple</span>
+      </button>
+      <button class="size-card" data-speed="105">
+        <span class="size-card__dim">🚶</span>
+        <span class="size-card__desc">Normal</span>
+        <span class="size-card__tag">2 pts / apple</span>
+      </button>
+      <button class="size-card" data-speed="75">
+        <span class="size-card__dim">🏃</span>
+        <span class="size-card__desc">Fast</span>
+        <span class="size-card__tag">3 pts / apple</span>
+      </button>
+      <button class="size-card" data-speed="50">
+        <span class="size-card__dim">🚀</span>
+        <span class="size-card__desc">Insane</span>
+        <span class="size-card__tag">5 pts / apple</span>
+      </button>
+    </div>
+  </main>
+
+  <main class="screen" id="snake-game-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="snake-mode-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag" id="snake-tag">Snake</span>
+      <span class="timer" id="snake-timer">0:00.0</span>
+    </header>
+
+    <div class="statbar">
+      <div class="statbar__item"><span class="statbar__label">Score</span><span class="statbar__value" id="snake-score">0</span></div>
+      <div class="statbar__item"><span class="statbar__label">Best</span><span class="statbar__value" id="snake-best">0</span></div>
+      <div class="statbar__item"><span class="statbar__label">Length</span><span class="statbar__value" id="snake-length">3</span></div>
+    </div>
+
+    <p class="status status--center" id="snake-status">Press W · A · S · D to start</p>
+
+    <div class="snake-wrap">
+      <canvas id="snake-canvas" width="420" height="420"></canvas>
+    </div>
+
+    <div class="dpad" id="snake-pad">
+      <button class="dpad__btn dpad__btn--up" data-dir="up" aria-label="Up (W)">▲<b>W</b></button>
+      <button class="dpad__btn dpad__btn--left" data-dir="left" aria-label="Left (A)">◀<b>A</b></button>
+      <button class="dpad__btn dpad__btn--right" data-dir="right" aria-label="Right (D)">▶<b>D</b></button>
+      <button class="dpad__btn dpad__btn--down" data-dir="down" aria-label="Down (S)">▼<b>S</b></button>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="snake-restart">New Game</button>
+      <button class="btn btn--ghost" id="snake-pause">Pause</button>
+    </div>
+  </main>
+
+  <!-- ==================== MINESWEEPER ==================== -->
+  <main class="screen" id="ms-mode-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="hub-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag">💣 Minesweeper</span>
+    </header>
+
+    <h2 class="title title--sm">Difficulty</h2>
+    <p class="subtitle">Your first click is always safe</p>
+
+    <div class="sizes">
+      <button class="size-card" data-cols="9" data-rows="9" data-mines="10">
+        <span class="size-card__dim">9 × 9</span>
+        <span class="size-card__desc">10 mines</span>
+        <span class="size-card__tag">Beginner</span>
+      </button>
+      <button class="size-card" data-cols="12" data-rows="12" data-mines="26">
+        <span class="size-card__dim">12 × 12</span>
+        <span class="size-card__desc">26 mines</span>
+        <span class="size-card__tag">Medium</span>
+      </button>
+      <button class="size-card" data-cols="16" data-rows="16" data-mines="52">
+        <span class="size-card__dim">16 × 16</span>
+        <span class="size-card__desc">52 mines</span>
+        <span class="size-card__tag">Hard</span>
+      </button>
+      <button class="size-card" data-cols="20" data-rows="16" data-mines="80">
+        <span class="size-card__dim">20 × 16</span>
+        <span class="size-card__desc">80 mines</span>
+        <span class="size-card__tag">Expert</span>
+      </button>
+    </div>
+  </main>
+
+  <main class="screen" id="ms-game-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="ms-mode-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag" id="ms-tag">Minesweeper</span>
+      <span class="timer" id="ms-timer">0:00.0</span>
+    </header>
+
+    <div class="statbar">
+      <div class="statbar__item"><span class="statbar__label">Mines left</span><span class="statbar__value" id="ms-mines">10</span></div>
+      <div class="statbar__item"><span class="statbar__label">Best</span><span class="statbar__value" id="ms-best">--:--</span></div>
+      <div class="statbar__item">
+        <span class="statbar__label">Mode</span>
+        <button class="statbar__toggle" id="ms-flag-toggle">⛏️ Dig</button>
+      </div>
+    </div>
+
+    <p class="status status--center" id="ms-status">Click any cell to start</p>
+
+    <div class="ms-board" id="ms-board"></div>
+
+    <div class="controls">
+      <button class="btn" id="ms-restart">New Game</button>
+    </div>
+  </main>
+
+  <!-- ==================== SPEED RUSH 3D ==================== -->
+  <main class="screen" id="race-mode-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="hub-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag">🏎️ Speed Rush 3D</span>
+    </header>
+
+    <h2 class="title title--sm">Race mode</h2>
+    <p class="subtitle">5 cars on the grid · 3 laps · turbo boost</p>
+
+    <div class="modes">
+      <button class="mode" id="race-mode-solo">
+        <span class="mode__icon">🤖</span>
+        <span class="mode__name">Single Player</span>
+        <span class="mode__desc">You against 4 AI drivers · full screen</span>
+      </button>
+      <button class="mode" id="race-mode-split">
+        <span class="mode__icon">🖥️</span>
+        <span class="mode__name">Split Screen</span>
+        <span class="mode__desc">2 players + 3 AI · one view each</span>
+      </button>
+      <button class="mode" id="race-mode-online">
+        <span class="mode__icon">🌐</span>
+        <span class="mode__name">Online</span>
+        <span class="mode__desc">Race someone on another device, peer-to-peer</span>
+      </button>
+    </div>
+
+    <fieldset class="difficulty">
+      <legend>AI skill</legend>
+      <label><input type="radio" name="race-difficulty" value="easy"> Easy</label>
+      <label><input type="radio" name="race-difficulty" value="normal" checked> Normal</label>
+      <label><input type="radio" name="race-difficulty" value="hard"> Hard</label>
+    </fieldset>
+
+    <p class="keys-hint">
+      <b>P1</b> W A S D + Shift &nbsp;·&nbsp; <b>P2</b> ↑ ↓ ← → + Right Shift
+    </p>
+  </main>
+
+  <main class="screen" id="race-track-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="race-mode-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag">Choose a track</span>
+    </header>
+
+    <h2 class="title title--sm">3 tracks</h2>
+    <p class="subtitle">Each one has its own layout, weather and hazards</p>
+
+    <div class="tracks">
+      <button class="track-card track-card--sunset" data-track="sunset">
+        <span class="track-card__name">Sunset Sprint</span>
+        <span class="track-card__desc">Wide desert highway · fast, forgiving curves</span>
+        <span class="track-card__tag">Easy</span>
+      </button>
+      <button class="track-card track-card--neon" data-track="neon">
+        <span class="track-card__name">Neon City</span>
+        <span class="track-card__desc">Night circuit · tight S-curves, no room for error</span>
+        <span class="track-card__tag">Technical</span>
+      </button>
+      <button class="track-card track-card--alpine" data-track="alpine">
+        <span class="track-card__name">Alpine Pass</span>
+        <span class="track-card__desc">Snowy mountain road · steep climbs and hairpins</span>
+        <span class="track-card__tag">Hard</span>
+      </button>
+    </div>
+  </main>
+
+  <main class="screen" id="race-car-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="race-track-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag">Choose your car</span>
+    </header>
+
+    <h2 class="title title--sm">Garage</h2>
+    <p class="subtitle" id="race-car-sub">Each car handles differently — pick your weapon</p>
+
+    <div class="cars" id="race-cars"></div>
+  </main>
+
+  <main class="screen" id="race-net-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="race-car-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag">🌐 Online race</span>
+    </header>
+
+    <div id="net-roles">
+      <p class="subtitle">
+        The two browsers connect <b>directly</b> — no server, no account.
+        Swap one code each to get started.
+      </p>
+      <div class="modes">
+        <button class="mode" id="net-host">
+          <span class="mode__icon">🎯</span>
+          <span class="mode__name">Host the race</span>
+          <span class="mode__desc">You pick the track and send the invite</span>
+        </button>
+        <button class="mode" id="net-join">
+          <span class="mode__icon">🔗</span>
+          <span class="mode__name">Join a race</span>
+          <span class="mode__desc">Someone sent you an invite code</span>
+        </button>
+      </div>
+      <details class="help">
+        <summary>How do I open this on the other device?</summary>
+        <div class="help__body">
+          <p>The other device needs the page first. In this folder run:</p>
+          <code>python -m http.server 8000</code>
+          <p>Find this PC's address with <code>ipconfig</code>, then on the other device (same Wi-Fi) open:</p>
+          <code>http://YOUR-PC-IP:8000</code>
+          <p>Or copy the files across / put them on any static host.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="net-panel" id="net-host-panel" hidden>
+      <div class="net-step">
+        <span class="net-step__num">1</span>
+        <div>
+          <p class="net-step__title">Send this invite code to the other player</p>
+          <textarea class="code" id="net-offer" readonly placeholder="Generating…"></textarea>
+          <button class="btn btn--sm" id="net-copy-offer">Copy invite</button>
+        </div>
+      </div>
+      <div class="net-step">
+        <span class="net-step__num">2</span>
+        <div>
+          <p class="net-step__title">Paste the reply code they send back</p>
+          <textarea class="code" id="net-answer-in" placeholder="Paste reply code…"></textarea>
+          <button class="btn btn--sm" id="net-accept">Connect</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="net-panel" id="net-join-panel" hidden>
+      <div class="net-step">
+        <span class="net-step__num">1</span>
+        <div>
+          <p class="net-step__title">Paste the invite code you were sent</p>
+          <textarea class="code" id="net-offer-in" placeholder="Paste invite code…"></textarea>
+          <button class="btn btn--sm" id="net-generate">Generate reply</button>
+        </div>
+      </div>
+      <div class="net-step">
+        <span class="net-step__num">2</span>
+        <div>
+          <p class="net-step__title">Send this reply back, then wait</p>
+          <textarea class="code" id="net-answer" readonly placeholder="Waiting for the invite…"></textarea>
+          <button class="btn btn--sm" id="net-copy-answer">Copy reply</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="net-status" id="net-status"></p>
+  </main>
+
+  <main class="screen" id="race-game-screen">
+    <header class="game-header">
+      <button class="icon-btn" data-back="race-car-screen" aria-label="Back">&#8592;</button>
+      <span class="mode-tag" id="race-tag">Speed Rush</span>
+    </header>
+
+    <div class="race-stage">
+      <canvas id="race-canvas" width="960" height="600"></canvas>
+
+      <div class="race-results" id="race-results" hidden>
+        <h3 id="race-results-title">Race over</h3>
+        <table class="race-table">
+          <thead><tr><th>Pos</th><th>Driver</th><th>Best lap</th></tr></thead>
+          <tbody id="race-results-body"></tbody>
+        </table>
+        <button class="btn" id="race-again">Race again</button>
+      </div>
+    </div>
+
+    <p class="status status--center" id="race-status">Get ready…</p>
+
+    <div class="controls">
+      <button class="btn" id="race-restart">Restart Race</button>
+    </div>
+  </main>
+
+  <script src="shared.js"></script>
+  <script src="net.js"></script>
+  <script src="tictactoe.js"></script>
+  <script src="connect4.js"></script>
+  <script src="memory.js"></script>
+  <script src="game2048.js"></script>
+  <script src="snake.js"></script>
+  <script src="minesweeper.js"></script>
+  <script src="race.js"></script>
+</body>
+</html>
