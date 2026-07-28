@@ -730,6 +730,13 @@
       speed: 1.10, accel: 1.14, grip: 1.24, tank: 0.85,
       shape: { width: 1.06, roof: 0.42, spoiler: 0.55, wheel: 1.12 },
       profile: 'sport',
+      image: 'car-boxer9.png',
+      /* Used only if the sprite's alpha cannot be measured (a canvas loaded
+         from file:// is tainted, so getImageData throws). Fractions of the
+         source image: where the car body sits inside the transparent frame. */
+      imageBox: { x: 0.206, y: 0.195, w: 0.538, h: 0.582 },
+      /* Where the full-width light bar sits inside that body box. */
+      brakeBar: { y: 0.47, h: 0.07, inset: 0.05 },
       // flat-six: higher pitched, rich in harmonics, metallic rasp under load
       audio: { base: 54, span: 300, cutoff: 3400, q: 5.5, tone: 'sawtooth', h2: 1.5, g2: 0.5, h3: 3.02, g3: 0.3 },
     },
@@ -741,6 +748,98 @@
   const RIVAL_NAMES = ['Vega', 'Kuro', 'Nova', 'Rook', 'Ash'];
   let chosenCar = 0;
 
+  /* ---------- Car sprites ----------
+     A car may supply a photographic sprite instead of the vector bodywork.
+     The image is used exactly as provided; all we work out is where the car
+     actually sits inside its transparent frame, so it can be scaled to the
+     right width and stood on the road rather than floating. */
+
+  const carSprites = {};
+
+  function measureSprite(image, fallback) {
+    const frame = document.createElement('canvas');
+    frame.width = image.naturalWidth;
+    frame.height = image.naturalHeight;
+    const g = frame.getContext('2d');
+    g.drawImage(image, 0, 0);
+
+    let pixels;
+    try {
+      pixels = g.getImageData(0, 0, frame.width, frame.height).data;
+    } catch {
+      // tainted canvas (file:// origin) — trust the ratios shipped with the car
+      return {
+        x: fallback.x * frame.width,
+        y: fallback.y * frame.height,
+        w: fallback.w * frame.width,
+        h: fallback.h * frame.height,
+      };
+    }
+
+    // ignore the soft drop shadow so the tyres, not the shadow, meet the road
+    const SOLID = 140;
+    let minX = frame.width;
+    let maxX = 0;
+    let minY = frame.height;
+    let maxY = 0;
+
+    for (let y = 0; y < frame.height; y++) {
+      for (let x = 0; x < frame.width; x++) {
+        if (pixels[(y * frame.width + x) * 4 + 3] < SOLID) continue;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+
+    if (maxX <= minX || maxY <= minY) {
+      return { x: 0, y: 0, w: frame.width, h: frame.height };
+    }
+    return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+  }
+
+  CARS.forEach((definition) => {
+    if (!definition.image) return;
+    const image = new Image();
+    image.onload = () => {
+      carSprites[definition.id] = {
+        image,
+        box: measureSprite(image, definition.imageBox),
+        brakeBar: definition.brakeBar,
+      };
+      refreshGaragePreview(definition.id);
+    };
+    image.onerror = () => { /* fall back to the drawn bodywork */ };
+    image.src = definition.image;
+  });
+
+  /* Scaled so the car body (not the transparent frame) is `width` across,
+     and its wheels sit on the ground line at `y`. */
+  function drawCarSprite(g, sprite, x, y, width, car, detailed) {
+    const { image, box } = sprite;
+    const scale = width / box.w;
+    const left = x - (box.x + box.w / 2) * scale;
+    const top = y - (box.y + box.h) * scale;
+
+    g.drawImage(image, left, top, image.naturalWidth * scale, image.naturalHeight * scale);
+
+    if (car.braking && sprite.brakeBar && detailed) {
+      const bar = sprite.brakeBar;
+      const bx = x - (box.w * scale) / 2 + box.w * scale * bar.inset;
+      const bw = box.w * scale * (1 - bar.inset * 2);
+      const by = top + (box.y + box.h * bar.y) * scale;
+      const bh = Math.max(1, box.h * bar.h * scale);
+      g.save();
+      g.globalCompositeOperation = 'lighter';
+      g.fillStyle = 'rgba(248, 60, 60, 0.55)';
+      roundedRectOn(g, bx, by, bw, bh, bh * 0.5);
+      g.fillStyle = 'rgba(255, 140, 140, 0.22)';
+      roundedRectOn(g, bx - bw * 0.03, by - bh, bw * 1.06, bh * 3, bh);
+      g.restore();
+    }
+  }
+
   function applyCar(racer, definition) {
     racer.car = definition;
     racer.body = definition.body;
@@ -748,6 +847,7 @@
     racer.accent = definition.accentColor;
     racer.shape = definition.shape;
     racer.profile = definition.profile || 'gt';
+    racer.carId = definition.id;
     racer.maxSpeed = MAX_SPEED * definition.speed;
     racer.accelRate = ACCEL * definition.accel;
     racer.grip = definition.grip;
@@ -1257,6 +1357,20 @@
       if (tilt) g.rotate(tilt * 0.045);
       if (skew) g.transform(1, 0, skew * 0.22, 1, 0, 0);
       g.translate(-x, -y);
+    }
+
+    /* A photographic sprite replaces the whole vector body, wheels included,
+       so it has to come before them. */
+    const sprite = carSprites[car.carId];
+    if (sprite) {
+      g.fillStyle = 'rgba(0,0,0,0.28)';
+      g.beginPath();
+      g.ellipse(x, y, half * 0.92, h * 0.1, 0, 0, Math.PI * 2);
+      g.fill();
+      drawCarSprite(g, sprite, x, y, w, car, detailed);
+      if (car.boosting) drawFlame(g, x, y, w, h);
+      if (restore) g.restore();
+      return;
     }
 
     /* contact shadow */
@@ -2650,9 +2764,17 @@
         else startGame();
       });
 
+      card.dataset.car = definition.id;
       list.appendChild(card);
       drawPreview(card.querySelector('.car-card__art'), definition);
     });
+  }
+
+  /* Sprites load after the garage is built, so redraw that card when one lands. */
+  function refreshGaragePreview(id) {
+    const card = document.querySelector(`.car-card[data-car="${id}"]`);
+    const definition = CARS.find((entry) => entry.id === id);
+    if (card && definition) drawPreview(card.querySelector('.car-card__art'), definition);
   }
 
   function statRow(label, value, min, max) {
@@ -2676,12 +2798,13 @@
     g.ellipse(surface.width / 2, surface.height - 14, 62, 10, 0, 0, Math.PI * 2);
     g.stroke();
 
-    drawCar(g, surface.width / 2, surface.height - 12, 104, {
+    drawCar(g, surface.width / 2, surface.height - 12, definition.image ? 120 : 104, {
       body: definition.body,
       trim: definition.trim,
       accent: definition.accentColor,
       shape: definition.shape,
       profile: definition.profile || 'gt',
+      carId: definition.id,
       braking: false,
       boosting: false,
     }, 0, true);
