@@ -2614,27 +2614,95 @@
   document.getElementById('race-restart').addEventListener('click', startRace);
   document.getElementById('race-again').addEventListener('click', startRace);
 
-  document.addEventListener('keydown', (event) => {
-    if (!Screens.isActive('race-game-screen')) return;
-    keys[event.code] = true;
-    if (event.code === 'KeyC') {
+  /* One-shot actions, shared by the keyboard and the on-screen buttons. */
+  function pressKey(code) {
+    if (code === 'KeyC') {
       zoomIndex = (zoomIndex + 1) % ZOOMS.length;
       statusEl.textContent = `Camera: ${ZOOMS[zoomIndex].name} · ${controlHint()}`;
+      return true;
     }
-    if (event.code === 'KeyM') {
+    if (code === 'KeyM') {
       Sound.on = !Sound.on;
       if (!Sound.on) Sound.silence();
       statusEl.textContent = controlHint();
+      return true;
     }
-    if (event.code === 'KeyG') {
+    if (code === 'KeyG') {
       players.forEach((player) => { player.manual = !player.manual; });
       statusEl.textContent = `Gearbox: ${players[0].manual ? 'MANUAL' : 'AUTO'} · ${controlHint()}`;
+      return true;
     }
-    if (handleGearKey(event.code)) event.preventDefault();
+    return handleGearKey(code);
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (!Screens.isActive('race-game-screen')) return;
+    keys[event.code] = true;
+    if (pressKey(event.code)) event.preventDefault();
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) event.preventDefault();
   });
 
   document.addEventListener('keyup', (event) => { keys[event.code] = false; });
+
+  /* ---------- Touch controls ----------
+     The buttons write into the same `keys` map the keyboard uses, so the
+     physics never needs to know how the car is being driven. Pointer capture
+     keeps a button held even if the thumb slides off it, and each button owns
+     its own pointer, so steering + throttle + turbo work together. */
+
+  const touchPad = document.getElementById('race-touch');
+
+  function bindHold(button, code) {
+    const press = (event) => {
+      event.preventDefault();
+      if (button.setPointerCapture) {
+        try { button.setPointerCapture(event.pointerId); } catch { /* not capturable */ }
+      }
+      button.classList.add('held');
+      keys[code] = true;
+      Sound.resume();
+    };
+    const release = () => {
+      button.classList.remove('held');
+      keys[code] = false;
+    };
+    button.addEventListener('pointerdown', press);
+    button.addEventListener('pointerup', release);
+    button.addEventListener('pointercancel', release);
+    button.addEventListener('lostpointercapture', release);
+    button.addEventListener('contextmenu', (event) => event.preventDefault());
+  }
+
+  touchPad.querySelectorAll('[data-hold]').forEach((button) => bindHold(button, button.dataset.hold));
+
+  touchPad.querySelectorAll('[data-tap]').forEach((button) => {
+    button.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      button.classList.add('held');
+      Sound.resume();
+      pressKey(button.dataset.tap);
+    });
+    const clear = () => button.classList.remove('held');
+    button.addEventListener('pointerup', clear);
+    button.addEventListener('pointercancel', clear);
+  });
+
+  function setTouchControls(visible) {
+    touchPad.hidden = !visible;
+    document.getElementById('race-touch-toggle').classList.toggle('on', visible);
+    if (!visible) {
+      // never leave a control stuck down
+      ['KeyA', 'KeyD', 'KeyW', 'KeyS', 'ShiftLeft'].forEach((code) => { keys[code] = false; });
+      touchPad.querySelectorAll('.touch-btn').forEach((button) => button.classList.remove('held'));
+    }
+  }
+
+  const touchDevice = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+  setTouchControls(touchDevice);
+
+  document.getElementById('race-touch-toggle').addEventListener('click', () => {
+    setTouchControls(touchPad.hidden);
+  });
 
   document.addEventListener('screen-left', () => {
     stop();

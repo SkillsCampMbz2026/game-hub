@@ -611,10 +611,34 @@
     <header class="game-header">
       <button class="icon-btn" data-back="race-car-screen" aria-label="Back">&#8592;</button>
       <span class="mode-tag" id="race-tag">Speed Rush</span>
+      <button class="icon-btn" id="race-touch-toggle" aria-label="Toggle touch controls" title="Touch controls">🎮</button>
     </header>
 
     <div class="race-stage">
       <canvas id="race-canvas" width="960" height="600"></canvas>
+
+      <div class="touch-pad" id="race-touch" hidden>
+        <div class="touch-group touch-group--steer">
+          <button class="touch-btn touch-btn--steer" data-hold="KeyA" aria-label="Steer left">◀</button>
+          <button class="touch-btn touch-btn--steer" data-hold="KeyD" aria-label="Steer right">▶</button>
+        </div>
+
+        <div class="touch-group touch-group--pedals">
+          <button class="touch-btn touch-btn--turbo" data-hold="ShiftLeft" aria-label="Turbo">TURBO</button>
+          <button class="touch-btn touch-btn--brake" data-hold="KeyS" aria-label="Brake">BRAKE</button>
+          <button class="touch-btn touch-btn--gas" data-hold="KeyW" aria-label="Accelerate">GAS</button>
+        </div>
+
+        <div class="touch-group touch-group--aux">
+          <button class="touch-btn touch-btn--sm" data-tap="KeyQ" aria-label="Gear down">▼</button>
+          <button class="touch-btn touch-btn--sm" data-tap="KeyE" aria-label="Gear up">▲</button>
+          <button class="touch-btn touch-btn--sm" data-tap="KeyG" aria-label="Auto gearbox">AUTO</button>
+          <button class="touch-btn touch-btn--sm" data-tap="KeyC" aria-label="Camera">CAM</button>
+          <button class="touch-btn touch-btn--sm" data-tap="KeyM" aria-label="Sound">🔊</button>
+        </div>
+      </div>
+
+      <p class="rotate-hint">↻ Turn your phone sideways for the full view</p>
 
       <div class="race-results" id="race-results" hidden>
         <h3 id="race-results-title">Race over</h3>
