@@ -302,17 +302,18 @@
       this.engineGain.connect(this.engineFilter);
       this.engineFilter.connect(master);
 
-      this.osc = [0, 1].map((i) => {
+      // three voices: fundamental plus two harmonics, mixed per car
+      this.voices = [0, 1, 2].map((i) => {
         const osc = this.ctx.createOscillator();
-        osc.type = i ? 'square' : 'sawtooth';
+        osc.type = i === 1 ? 'square' : 'sawtooth';
         osc.frequency.value = 60;
-        osc.detune.value = i ? 9 : -6;
+        osc.detune.value = [-6, 9, 4][i];
         const gain = this.ctx.createGain();
-        gain.gain.value = i ? 0.35 : 1;
+        gain.gain.value = i === 0 ? 1 : 0;
         osc.connect(gain);
         gain.connect(this.engineGain);
         osc.start();
-        return osc;
+        return { osc, gain };
       });
 
       // shared noise source for scrub and turbo
@@ -361,11 +362,24 @@
       if (!this.ready) return;
       const level = this.on && racing ? 1 : 0;
       const revs = clamp(car.rpm, 0.12, 1.1);
-      const hz = 42 + revs * 240;
+      const voicing = (car.car && car.car.audio) || DEFAULT_AUDIO;
+      const now = this.ctx.currentTime;
+      const hz = voicing.base + revs * voicing.span;
 
-      this.osc[0].frequency.setTargetAtTime(hz, this.ctx.currentTime, 0.03);
-      this.osc[1].frequency.setTargetAtTime(hz * 2.01, this.ctx.currentTime, 0.03);
-      this.engineFilter.frequency.setTargetAtTime(500 + revs * 2200 + (throttle ? 700 : 0), this.ctx.currentTime, 0.05);
+      // engine character only changes when the car does
+      if (this.voicedFor !== voicing) {
+        this.voicedFor = voicing;
+        this.voices[0].osc.type = voicing.tone;
+        this.voices[1].gain.gain.setTargetAtTime(voicing.g2, now, 0.05);
+        this.voices[2].gain.gain.setTargetAtTime(voicing.g3, now, 0.05);
+        this.engineFilter.Q.setTargetAtTime(voicing.q, now, 0.05);
+      }
+
+      this.voices[0].osc.frequency.setTargetAtTime(hz, now, 0.03);
+      this.voices[1].osc.frequency.setTargetAtTime(hz * voicing.h2, now, 0.03);
+      if (voicing.h3) this.voices[2].osc.frequency.setTargetAtTime(hz * voicing.h3, now, 0.03);
+      this.engineFilter.frequency.setTargetAtTime(
+        voicing.cutoff * (0.25 + revs * 0.85) + (throttle ? 700 : 0), now, 0.05);
       // the limiter chops the fuel, so the note stutters instead of climbing
       const limiter = car.overRev && Math.sin(this.ctx.currentTime * 95) < 0 ? 0.35 : 1;
       this.engineGain.gain.setTargetAtTime(level * limiter * (0.05 + revs * 0.1), this.ctx.currentTime, car.overRev ? 0.008 : 0.05);
@@ -710,7 +724,19 @@
       speed: 0.96, accel: 1.02, grip: 1.02, tank: 1.5,
       shape: { width: 0.98, roof: 0.46, spoiler: 1.1, wheel: 1.0 },
     },
+    {
+      id: 'boxer9', name: 'Boxer 9', blurb: 'Rear-engined flat-six · surgical grip',
+      body: '#cf1020', trim: '#5c0a12', accentColor: '#ff6b6b',
+      speed: 1.10, accel: 1.14, grip: 1.24, tank: 0.85,
+      shape: { width: 1.06, roof: 0.42, spoiler: 0.55, wheel: 1.12 },
+      profile: 'sport',
+      // flat-six: higher pitched, rich in harmonics, metallic rasp under load
+      audio: { base: 54, span: 300, cutoff: 3400, q: 5.5, tone: 'sawtooth', h2: 1.5, g2: 0.5, h3: 3.02, g3: 0.3 },
+    },
   ];
+
+  /* Default engine voicing for everything else. */
+  const DEFAULT_AUDIO = { base: 42, span: 240, cutoff: 2200, q: 1, tone: 'sawtooth', h2: 2.01, g2: 0.35, h3: 0, g3: 0 };
 
   const RIVAL_NAMES = ['Vega', 'Kuro', 'Nova', 'Rook', 'Ash'];
   let chosenCar = 0;
@@ -721,6 +747,7 @@
     racer.trim = definition.trim;
     racer.accent = definition.accentColor;
     racer.shape = definition.shape;
+    racer.profile = definition.profile || 'gt';
     racer.maxSpeed = MAX_SPEED * definition.speed;
     racer.accelRate = ACCEL * definition.accel;
     racer.grip = definition.grip;
@@ -1258,6 +1285,13 @@
       }
     });
 
+    if (car.profile === 'sport') {
+      drawSportRear(g, x, y, w, h, car, detailed);
+      if (car.boosting) drawFlame(g, x, y, w, h);
+      if (restore) g.restore();
+      return;
+    }
+
     /* lower body: wider at the bottom so it reads as a solid volume */
     const bodyTop = top + h * shape.roof;
     const bottomHalf = half;
@@ -1381,6 +1415,183 @@
     }
 
     if (restore) g.restore();
+  }
+
+  /* Rear three-quarter of a rear-engined sports coupe: wide haunches that
+     curve over the wheels, a fastback screen, a full-width light bar and
+     quad tailpipes under a ducktail. */
+  function drawSportRear(g, x, y, w, h, car, detailed) {
+    const top = y - h;
+    const half = w / 2;
+    const hipY = top + h * 0.34;          // widest point, over the rear arches
+    const deckY = top + h * 0.3;          // engine cover / rear deck
+    const roofHalf = half * 0.5;
+
+    /* haunches: bezier shoulders instead of a flat trapezoid */
+    if (detailed) {
+      const paint = g.createLinearGradient(x - half, deckY, x + half, y);
+      paint.addColorStop(0, car.trim);
+      paint.addColorStop(0.2, car.body);
+      paint.addColorStop(0.5, car.accent || car.body);
+      paint.addColorStop(0.8, car.body);
+      paint.addColorStop(1, car.trim);
+      g.fillStyle = paint;
+    } else {
+      g.fillStyle = car.body;
+    }
+    g.beginPath();
+    g.moveTo(x - half * 0.62, deckY);
+    g.quadraticCurveTo(x - half, deckY, x - half, hipY);      // left haunch
+    g.lineTo(x - half, y - h * 0.14);
+    g.quadraticCurveTo(x - half, y, x - half * 0.8, y);
+    g.lineTo(x + half * 0.8, y);
+    g.quadraticCurveTo(x + half, y, x + half, y - h * 0.14);
+    g.lineTo(x + half, hipY);
+    g.quadraticCurveTo(x + half, deckY, x + half * 0.62, deckY); // right haunch
+    g.closePath();
+    g.fill();
+
+    if (detailed && w > 44) {
+      g.save();
+      g.clip();
+      g.globalAlpha = 0.45;
+      g.fillStyle = getPattern(g, 'flake', 48, paintFlake);
+      g.fillRect(x - half, deckY, w, h);
+      g.restore();
+    }
+
+    /* fastback roof and rear screen */
+    g.fillStyle = car.trim;
+    g.beginPath();
+    g.moveTo(x - roofHalf, top + h * 0.04);
+    g.quadraticCurveTo(x, top - h * 0.06, x + roofHalf, top + h * 0.04);
+    g.lineTo(x + half * 0.68, deckY + h * 0.02);
+    g.lineTo(x - half * 0.68, deckY + h * 0.02);
+    g.closePath();
+    g.fill();
+
+    if (detailed) {
+      const glass = g.createLinearGradient(0, top, 0, deckY);
+      glass.addColorStop(0, 'rgba(222,242,255,0.8)');
+      glass.addColorStop(0.6, 'rgba(110,160,200,0.55)');
+      glass.addColorStop(1, 'rgba(16,32,48,0.8)');
+      g.fillStyle = glass;
+    } else {
+      g.fillStyle = 'rgba(170,210,240,0.55)';
+    }
+    g.beginPath();
+    g.moveTo(x - roofHalf * 0.86, top + h * 0.09);
+    g.quadraticCurveTo(x, top + h * 0.01, x + roofHalf * 0.86, top + h * 0.09);
+    g.lineTo(x + half * 0.58, deckY - h * 0.01);
+    g.lineTo(x - half * 0.58, deckY - h * 0.01);
+    g.closePath();
+    g.fill();
+
+    /* louvred engine cover between the screen and the light bar */
+    if (detailed && w > 52) {
+      g.fillStyle = 'rgba(0,0,0,0.35)';
+      for (let slat = 0; slat < 4; slat++) {
+        g.fillRect(x - half * 0.42, deckY + h * (0.06 + slat * 0.045), w * 0.42, h * 0.018);
+      }
+    }
+
+    /* ducktail: a lip that runs the whole width and kicks up at the trailing edge */
+    g.fillStyle = detailed && w > 60 ? getPattern(g, 'carbon', 16, paintCarbon) : car.trim;
+    g.beginPath();
+    g.moveTo(x - half * 0.96, deckY + h * 0.02);
+    g.quadraticCurveTo(x, deckY - h * 0.12, x + half * 0.96, deckY + h * 0.02);
+    g.lineTo(x + half * 0.96, deckY + h * 0.08);
+    g.quadraticCurveTo(x, deckY - h * 0.04, x - half * 0.96, deckY + h * 0.08);
+    g.closePath();
+    g.fill();
+
+    /* the signature: one continuous light bar across the full width */
+    const barY = y - h * 0.42;
+    const barH = h * 0.1;
+    const lit = car.braking;
+    if (detailed) {
+      const bar = g.createLinearGradient(x - half, 0, x + half, 0);
+      bar.addColorStop(0, lit ? '#fee2e2' : '#7f1d1d');
+      bar.addColorStop(0.5, lit ? '#fca5a5' : '#dc2626');
+      bar.addColorStop(1, lit ? '#fee2e2' : '#7f1d1d');
+      g.fillStyle = bar;
+    } else {
+      g.fillStyle = lit ? '#fca5a5' : '#dc2626';
+    }
+    roundedRectOn(g, x - half * 0.9, barY, half * 1.8, barH, barH * 0.45);
+
+    // inner lens detail + brake glow
+    if (detailed) {
+      g.fillStyle = 'rgba(0,0,0,0.35)';
+      g.fillRect(x - half * 0.9, barY + barH * 0.42, half * 1.8, barH * 0.16);
+      if (lit) {
+        g.fillStyle = 'rgba(248,113,113,0.4)';
+        roundedRectOn(g, x - half, barY - h * 0.06, w, barH + h * 0.12, h * 0.09);
+      }
+      // reflector strip below
+      g.fillStyle = 'rgba(255,255,255,0.14)';
+      g.fillRect(x - half * 0.34, y - h * 0.27, w * 0.34, h * 0.035);
+    }
+
+    /* rear bumper, diffuser and quad tailpipes */
+    if (detailed) {
+      g.fillStyle = w > 60 ? getPattern(g, 'carbon', 16, paintCarbon) : 'rgba(0,0,0,0.4)';
+      g.beginPath();
+      g.moveTo(x - half * 0.72, y - h * 0.17);
+      g.lineTo(x + half * 0.72, y - h * 0.17);
+      g.lineTo(x + half * 0.6, y);
+      g.lineTo(x - half * 0.6, y);
+      g.closePath();
+      g.fill();
+
+      g.fillStyle = '#0f172a';
+      for (let fin = -2; fin <= 2; fin++) {
+        g.fillRect(x + fin * w * 0.1 - w * 0.011, y - h * 0.14, w * 0.022, h * 0.12);
+      }
+
+      g.fillStyle = '#cbd5e1';
+      [-1, 1].forEach((side) => {
+        [0.2, 0.3].forEach((offset) => {
+          g.beginPath();
+          g.arc(x + side * w * offset, y - h * 0.09, w * 0.032, 0, Math.PI * 2);
+          g.fill();
+        });
+      });
+      g.fillStyle = '#111827';
+      [-1, 1].forEach((side) => {
+        [0.2, 0.3].forEach((offset) => {
+          g.beginPath();
+          g.arc(x + side * w * offset, y - h * 0.09, w * 0.019, 0, Math.PI * 2);
+          g.fill();
+        });
+      });
+
+      /* highlight over the haunches */
+      g.strokeStyle = 'rgba(255,255,255,0.28)';
+      g.lineWidth = Math.max(1, h * 0.03);
+      g.beginPath();
+      g.moveTo(x - half * 0.94, hipY + h * 0.06);
+      g.quadraticCurveTo(x, hipY - h * 0.02, x + half * 0.94, hipY + h * 0.06);
+      g.stroke();
+    }
+  }
+
+  function drawFlame(g, x, y, w, h) {
+    const flicker = 0.75 + Math.sin(clockNow * 0.045) * 0.3;
+    g.fillStyle = 'rgba(59,130,246,0.75)';
+    g.beginPath();
+    g.moveTo(x - w * 0.22, y - h * 0.06);
+    g.lineTo(x, y + h * 0.8 * flicker);
+    g.lineTo(x + w * 0.22, y - h * 0.06);
+    g.closePath();
+    g.fill();
+    g.fillStyle = 'rgba(253,224,71,0.9)';
+    g.beginPath();
+    g.moveTo(x - w * 0.1, y - h * 0.06);
+    g.lineTo(x, y + h * 0.42 * flicker);
+    g.lineTo(x + w * 0.1, y - h * 0.06);
+    g.closePath();
+    g.fill();
   }
 
   function roundedRectOn(g, x, y, w, h, r) {
@@ -2470,6 +2681,7 @@
       trim: definition.trim,
       accent: definition.accentColor,
       shape: definition.shape,
+      profile: definition.profile || 'gt',
       braking: false,
       boosting: false,
     }, 0, true);
