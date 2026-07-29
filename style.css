@@ -997,6 +997,29 @@ body.theme-race { background: radial-gradient(circle at 50% 0%, #1b2340, #05070f
 #race-game-screen { max-width: min(97vw, 980px); }
 
 .art-emoji--race { background: linear-gradient(150deg, #f97316, #7c2d12); }
+.art-emoji--br { background: linear-gradient(150deg, #7c5cff, #2f1d6b); }
+.art-emoji--maze { background: linear-gradient(150deg, #1e3a8a, #050814); }
+
+/* The two full 3D games live in their own pages, so their cards are links. */
+.mode--3d {
+  text-decoration: none;
+  border-color: #4c3fbf;
+}
+
+.mode--3d:hover { border-color: #a78bfa; }
+
+.badge3d {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  vertical-align: middle;
+  color: #0f172a;
+  background: #a78bfa;
+  border-radius: 999px;
+}
 
 .keys-hint {
   margin-top: 4px;
